@@ -159,9 +159,14 @@ export const generateCustomToken = functions.https.onRequest(async (req, res) =>
     }
 
     // Generate custom token with session id claim for traceability
-    functions.logger.info('🎫 Generating custom token...');
+    functions.logger.info('🎫 Generating custom token...', { uid, sessionId });
     const customToken = await admin.auth().createCustomToken(uid, { sid: sessionId });
-    functions.logger.info('✅ Custom token generated');
+    functions.logger.info('✅ Custom token generated', { 
+      tokenPreview: customToken.substring(0, 50) + '...',
+      tokenLength: customToken.length,
+      uid,
+      email: decodedToken.email
+    });
 
     // Update the same session doc atomically to single-use state
     functions.logger.info('💾 Storing token in session doc...');

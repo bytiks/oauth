@@ -92,6 +92,44 @@
       border-radius: 6px;
       display: none;
     }
+
+    .user-data {
+      display: none;
+      background: #e8f5e9;
+      border: 1px solid #4caf50;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+
+    .user-data.show {
+      display: block;
+    }
+
+    .user-data h3 {
+      margin: 0 0 10px 0;
+      color: #2e7d32;
+      font-size: 16px;
+    }
+
+    .user-data pre {
+      background: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+      margin: 5px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .user-data label {
+      font-weight: 600;
+      color: #555;
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
@@ -103,6 +141,14 @@
     </div>
     
     <div id="status" class="status"></div>
+
+    <div id="user-data" class="user-data">
+      <h3>✅ User Data</h3>
+      <label>Custom Token:</label>
+      <pre id="token-display"></pre>
+      <label>Token Preview (first 50 chars):</label>
+      <pre id="token-preview"></pre>
+    </div>
     
     <iframe id="auth-iframe" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
     
@@ -218,6 +264,12 @@
             showStatus('Authentication successful!', 'success');
             authenticateBtn.disabled = false;
             authenticateBtn.textContent = 'Re-authenticate';
+
+            // Display token in UI
+            console.log('🎫 Custom Token received:', customToken);
+            document.getElementById('token-display').textContent = customToken;
+            document.getElementById('token-preview').textContent = customToken.substring(0, 50) + '...';
+            document.getElementById('user-data').classList.add('show');
             
             // Save token to plugin storage
             parent.postMessage({ 
@@ -250,6 +302,12 @@
           currentAccessToken = msg.token;
           showStatus('Already authenticated', 'success');
           authenticateBtn.textContent = 'Re-authenticate';
+          
+          // Display existing token
+          console.log('🎫 Existing Token loaded:', msg.token);
+          document.getElementById('token-display').textContent = msg.token;
+          document.getElementById('token-preview').textContent = msg.token.substring(0, 50) + '...';
+          document.getElementById('user-data').classList.add('show');
         }
       }
       

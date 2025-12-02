@@ -100,6 +100,26 @@
       color: #4CAF50;
       font-size: 16px;
     }
+
+    .user-info pre {
+      background: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 11px;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid #ddd;
+    }
+
+    .user-info label {
+      font-weight: 600;
+      color: #555;
+      display: block;
+      margin-top: 10px;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -124,13 +144,27 @@
     <div id="user-info" class="user-info">
       <h3>✅ Authentication Complete!</h3>
       <p>You can close this window and return to Figma.</p>
-      <p style="font-size: 12px; color: #666; margin-top: 10px;">The plugin will automatically detect your authentication.</p>
+      
+      <label>User ID:</label>
+      <pre id="user-id-display"></pre>
+      
+      <label>Email:</label>
+      <pre id="user-email-display"></pre>
+      
+      <label>Custom Token (first 60 chars):</label>
+      <pre id="token-preview-display"></pre>
+
+      <label>Full Custom Token:</label>
+      <pre id="token-full-display"></pre>
+      
+      <p style="font-size: 12px; color: #666; margin-top: 15px;">The plugin will automatically detect your authentication.</p>
     </div>
   </div>
 
   <!-- Firebase SDK (Compat version for FirebaseUI) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   
   <!-- FirebaseUI -->
   <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
@@ -212,6 +246,31 @@
         
         if (data.success) {
           console.log('✅ Token stored successfully in Firestore');
+          
+          try {
+            // Fetch the token from Firestore to display it
+            const db = firebase.firestore();
+            db.useEmulator('127.0.0.1', 8081);
+            const tokenDoc = await db.collection('figma_auth').doc(sessionId).get();
+            const tokenData = tokenDoc.exists ? tokenDoc.data() : null;
+            const customToken = tokenData?.customToken || 'Token not found';
+            
+            console.log('🎫 Custom Token:', customToken);
+            
+            // Display user data and token
+            document.getElementById('user-id-display').textContent = user.uid;
+            document.getElementById('user-email-display').textContent = user.email || 'N/A';
+            document.getElementById('token-preview-display').textContent = customToken.substring(0, 60) + '...';
+            document.getElementById('token-full-display').textContent = customToken;
+          } catch (err) {
+            console.warn('⚠️ Could not fetch token for display:', err);
+            // Still show user info even if token fetch fails
+            document.getElementById('user-id-display').textContent = user.uid;
+            document.getElementById('user-email-display').textContent = user.email || 'N/A';
+            document.getElementById('token-preview-display').textContent = 'Token generated (view in plugin)';
+            document.getElementById('token-full-display').textContent = 'Token generated successfully. Check plugin UI.';
+          }
+          
           showStatus('✅ Authentication successful! You can close this window.', 'success');
           
           // Show success UI
@@ -262,6 +321,7 @@
         }
       },
       signInFlow: 'popup',
+      signInSuccessUrl: '#',
       signInOptions: [
         {
           provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
