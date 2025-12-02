@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // figma_auth holds short-lived session docs for token handoff
+    match /figma_auth/{sessionId} {
+      // Plugin can read only the ready token for the exact doc, and only while not expired
+      allow get, list: if false; // prevent broad reads
+      allow read: if
+        resource.data.status == 'ready' &&
+        resource.data.customToken is string &&
+        request.time < resource.data.expiresAt;
+      
+      // Only authenticated users (Admin SDK/Functions) can create or update
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      
+      // Allow delete for cleanup by plugin after reading the token, and only if ready
+      allow delete: if resource.data.status == 'ready';
+    }
+  }
+}

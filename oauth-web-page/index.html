@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Firebase Authentication - Figma Plugin</title>
+  
+  <!-- FirebaseUI CSS -->
+  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 20px;
+      margin: 0;
+      background: #fff;
+    }
+    
+    h2 {
+      margin-top: 0;
+      color: #333;
+      font-size: 18px;
+    }
+    
+    .auth-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .info {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .emulator-notice {
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+      font-size: 13px;
+      color: #856404;
+    }
+    
+    .status {
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    
+    .status.loading {
+      background: #d1ecf1;
+      color: #0c5460;
+      display: block;
+    }
+    
+    #firebaseui-auth-container {
+      margin: 10px 0;
+    }
+    
+    #loader {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .user-info {
+      display: none;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    
+    .user-info.show {
+      display: block;
+    }
+    
+    .user-info h3 {
+      margin-top: 0;
+      color: #4CAF50;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <h2>🔐 Authentication</h2>
+    
+    <div class="info">
+      This plugin uses Firebase authentication. Sign in with Email/Password or Google to continue.
+    </div>
+    
+    <div class="emulator-notice">
+      ⚠️ Using Local Emulators
+    </div>
+    
+    <div id="status" class="status"></div>
+    
+    <!-- FirebaseUI Auth container -->
+    <div id="firebaseui-auth-container"></div>
+    <div id="loader">Loading...</div>
+    
+    <!-- User info after sign-in -->
+    <div id="user-info" class="user-info">
+      <h3>✅ Authentication Complete!</h3>
+      <p>You can close this window and return to Figma.</p>
+      <p style="font-size: 12px; color: #666; margin-top: 10px;">The plugin will automatically detect your authentication.</p>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (Compat version for FirebaseUI) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  
+  <!-- FirebaseUI -->
+  <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
+  
+  <script>
+    console.log('🚀 Auth page loaded');
+    
+    // Get sessionId from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('sessionId');
+    
+    console.log('📋 Session ID:', sessionId);
+    
+    if (!sessionId) {
+      console.error('❌ No sessionId in URL');
+      document.getElementById('status').textContent = 'Error: No session ID provided';
+      document.getElementById('status').className = 'status error';
+      document.getElementById('loader').style.display = 'none';
+      throw new Error('No sessionId provided');
+    }
+    
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXCZ_34epRlVsD1_2GWPAq0A-lG49WogM",
+      authDomain: "my-auth-figma.firebaseapp.com",
+      projectId: "my-auth-figma",
+      storageBucket: "my-auth-figma.firebasestorage.app",
+      messagingSenderId: "832872984394",
+      appId: "1:832872984394:web:c24c5efccae3753bbc9bb3",
+    };
+
+    // Initialize Firebase
+    console.log('🔧 Initializing Firebase...');
+    firebase.initializeApp(firebaseConfig);
+    
+    // Connect to Auth Emulator
+    console.log('🔌 Connecting to Auth Emulator...');
+    firebase.auth().useEmulator('http://127.0.0.1:9099');
+    
+    // Initialize FirebaseUI
+    var ui = new firebaseui.auth.AuthUI(firebase.auth());
+    
+    // Show status message
+    function showStatus(message, type) {
+      console.log(`📢 Status: ${message} (${type})`);
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = 'status ' + type;
+    }
+    
+    // Call Firebase Function to generate custom token
+    async function generateAndStoreToken(user, idToken) {
+      console.log('🎫 Generating custom token for user:', user.uid);
+      showStatus('Generating authentication token...', 'loading');
+      
+      const functionUrl = 'http://127.0.0.1:5001/my-auth-figma/us-central1/generateCustomToken';
+      console.log('📡 Calling function:', functionUrl);
+      
+      try {
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+            sessionId: sessionId,
+            uid: user.uid
+          })
+        });
+        
+        console.log('📥 Function response status:', response.status);
+        const data = await response.json();
+        console.log('📦 Function response data:', data);
+        
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP ${response.status}`);
+        }
+        
+        if (data.success) {
+          console.log('✅ Token stored successfully in Firestore');
+          showStatus('✅ Authentication successful! You can close this window.', 'success');
+          
+          // Show success UI
+          document.getElementById('firebaseui-auth-container').style.display = 'none';
+          document.getElementById('loader').style.display = 'none';
+          document.getElementById('user-info').classList.add('show');
+        } else {
+          throw new Error('Function returned success: false');
+        }
+        
+      } catch (error) {
+        console.error('❌ Error calling function:', error);
+        showStatus('❌ Failed to store token: ' + error.message, 'error');
+      }
+    }
+    
+    // FirebaseUI configuration
+    var uiConfig = {
+      callbacks: {
+        signInSuccessWithAuthResult: async function(authResult, redirectUrl) {
+          const user = authResult.user;
+          console.log('👤 User signed in:', user.uid, user.email);
+          
+          showStatus('Getting authentication token...', 'loading');
+          
+          try {
+            // Get ID token
+            const idToken = await user.getIdToken();
+            console.log('🔑 Got ID token');
+            
+            // Call function to generate and store custom token
+            await generateAndStoreToken(user, idToken);
+            
+          } catch (error) {
+            console.error('❌ Sign-in callback error:', error);
+            showStatus('Authentication failed: ' + error.message, 'error');
+          }
+          
+          return false; // Prevent redirect
+        },
+        uiShown: function() {
+          console.log('🎨 FirebaseUI rendered');
+          document.getElementById('loader').style.display = 'none';
+        },
+        signInFailure: function(error) {
+          console.error('❌ Sign-in failed:', error);
+          showStatus('Authentication failed: ' + error.message, 'error');
+        }
+      },
+      signInFlow: 'popup',
+      signInOptions: [
+        {
+          provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
+          requireDisplayName: true
+        },
+        firebase.auth.GoogleAuthProvider.PROVIDER_ID
+      ],
+      tosUrl: '#',
+      privacyPolicyUrl: '#'
+    };
+    
+    // Check if user is already signed in
+    console.log('👀 Checking auth state...');
+    firebase.auth().onAuthStateChanged(async function(user) {
+      if (user) {
+        console.log('👤 User already signed in:', user.uid);
+        
+        // Get fresh token and call function
+        try {
+          const idToken = await user.getIdToken();
+          await generateAndStoreToken(user, idToken);
+        } catch (error) {
+          console.error('❌ Error with existing user:', error);
+          showStatus('Error: ' + error.message, 'error');
+        }
+      } else {
+        console.log('👻 No user signed in, showing UI');
+        // No user is signed in, show the UI
+        ui.start('#firebaseui-auth-container', uiConfig);
+      }
+    });
+  </script>
+</body>
+</html>

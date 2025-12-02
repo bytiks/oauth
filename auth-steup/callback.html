@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Authentication Callback</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #f5f5f5;
+    }
+    .container {
+      text-align: center;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Processing Authentication...</h2>
+    <p>Please wait while we complete your authentication.</p>
+  </div>
+
+  <script>
+    /**
+     * This page should be hosted on your server (e.g., https://your-domain.com/callback)
+     * It receives the OAuth callback and sends the token back to the plugin iframe
+     */
+    
+    (function() {
+      // Parse the URL hash or query parameters for the access token
+      // For implicit flow (response_type=token), token is in the hash
+      // For authorization code flow (response_type=code), code is in query params
+      
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash || window.location.search);
+      
+      const accessToken = params.get('access_token');
+      const error = params.get('error');
+      const errorDescription = params.get('error_description');
+      const state = params.get('state');
+      
+      // Send message back to the parent window (the Figma plugin iframe)
+      if (window.parent && window.parent !== window) {
+        if (accessToken) {
+          window.parent.postMessage({
+            type: 'auth-callback',
+            token: accessToken,
+            receivedState: state
+          }, '*'); // In production, specify your Figma plugin's origin
+        } else if (error) {
+          window.parent.postMessage({
+            type: 'auth-callback',
+            error: error,
+            errorDescription: errorDescription,
+            receivedState: state
+          }, '*');
+        }
+      }
+      
+      // Close or redirect after a short delay
+      setTimeout(() => {
+        window.close();
+      }, 2000);
+    })();
+  </script>
+</body>
+</html>

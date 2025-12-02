@@ -1,0 +1,22 @@
+{
+  "name": "auth-steup",
+  "id": "1577768032163994516",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": [
+    "figma"
+  ],
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": [
+      "*"
+    ],
+    "reasoning": "Required for OAuth authentication flow",
+    "devAllowedDomains": [
+      "*"
+    ]
+  }
+}
