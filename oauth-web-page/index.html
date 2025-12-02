@@ -294,6 +294,8 @@
           const user = authResult.user;
           console.log('👤 User signed in:', user.uid, user.email);
           
+          // Mark token as generated to prevent duplicate calls
+          tokenGenerated = true;
           showStatus('Getting authentication token...', 'loading');
           
           try {
@@ -333,11 +335,15 @@
       privacyPolicyUrl: '#'
     };
     
+    // Track if we've already processed this session
+    let tokenGenerated = false;
+
     // Check if user is already signed in
     console.log('👀 Checking auth state...');
     firebase.auth().onAuthStateChanged(async function(user) {
-      if (user) {
+      if (user && !tokenGenerated) {
         console.log('👤 User already signed in:', user.uid);
+        tokenGenerated = true;
         
         // Get fresh token and call function
         try {
@@ -347,7 +353,7 @@
           console.error('❌ Error with existing user:', error);
           showStatus('Error: ' + error.message, 'error');
         }
-      } else {
+      } else if (!user) {
         console.log('👻 No user signed in, showing UI');
         // No user is signed in, show the UI
         ui.start('#firebaseui-auth-container', uiConfig);

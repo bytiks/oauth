@@ -144,10 +144,14 @@
 
     <div id="user-data" class="user-data">
       <h3>✅ User Data</h3>
-      <label>Custom Token:</label>
-      <pre id="token-display"></pre>
+      <label>Email:</label>
+      <pre id="email-display"></pre>
+      <label>User ID:</label>
+      <pre id="uid-display"></pre>
       <label>Token Preview (first 50 chars):</label>
       <pre id="token-preview"></pre>
+      <label>Custom Token:</label>
+      <pre id="token-display"></pre>
     </div>
     
     <iframe id="auth-iframe" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
@@ -213,7 +217,11 @@
         if (customToken) {
           // Cleanup: best-effort delete
           docRef.delete().catch(err => console.error('Failed to delete session doc:', err));
-          return customToken;
+          return {
+            token: customToken,
+            uid: data.uid || 'N/A',
+            email: data.email || 'N/A'
+          };
         }
         return null;
       } catch (error) {
@@ -256,26 +264,31 @@
         pollInterval = setInterval(async () => {
           attempts++;
           
-          const customToken = await pollFirestoreForToken(sessionId);
+          const result = await pollFirestoreForToken(sessionId);
           
-          if (customToken) {
+          if (result) {
             clearInterval(pollInterval);
-            currentAccessToken = customToken;
+            currentAccessToken = result.token;
             showStatus('Authentication successful!', 'success');
             authenticateBtn.disabled = false;
             authenticateBtn.textContent = 'Re-authenticate';
 
-            // Display token in UI
-            console.log('🎫 Custom Token received:', customToken);
-            document.getElementById('token-display').textContent = customToken;
-            document.getElementById('token-preview').textContent = customToken.substring(0, 50) + '...';
+            // Display user data and token in UI
+            console.log('🎫 Custom Token received:', result.token);
+            console.log('👤 User:', result.uid, result.email);
+            document.getElementById('email-display').textContent = result.email;
+            document.getElementById('uid-display').textContent = result.uid;
+            document.getElementById('token-display').textContent = result.token;
+            document.getElementById('token-preview').textContent = result.token.substring(0, 50) + '...';
             document.getElementById('user-data').classList.add('show');
             
             // Save token to plugin storage
             parent.postMessage({ 
               pluginMessage: { 
                 type: 'save-token', 
-                token: customToken 
+                token: result.token,
+                email: result.email,
+                uid: result.uid
               } 
             }, '*');
           } else if (attempts >= maxAttempts) {
@@ -303,8 +316,10 @@
           showStatus('Already authenticated', 'success');
           authenticateBtn.textContent = 'Re-authenticate';
           
-          // Display existing token
+          // Display existing token and user data
           console.log('🎫 Existing Token loaded:', msg.token);
+          document.getElementById('email-display').textContent = msg.email || 'N/A';
+          document.getElementById('uid-display').textContent = msg.uid || 'N/A';
           document.getElementById('token-display').textContent = msg.token;
           document.getElementById('token-preview').textContent = msg.token.substring(0, 50) + '...';
           document.getElementById('user-data').classList.add('show');
